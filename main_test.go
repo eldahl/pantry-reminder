@@ -93,4 +93,34 @@ func TestDB(t *testing.T) {
 	if len(items) != 0 {
 		t.Errorf("Expected 0 items after notification, got %d", len(items))
 	}
+
+	// Test Receivers
+	err = AddReceiver("test@example.com")
+	if err != nil {
+		t.Fatalf("Failed to add receiver: %v", err)
+	}
+
+	receivers, err := GetReceivers()
+	if err != nil {
+		t.Fatalf("Failed to get receivers: %v", err)
+	}
+	if len(receivers) != 1 {
+		t.Errorf("Expected 1 receiver, got %d", len(receivers))
+	}
+	if receivers[0].Email != "test@example.com" {
+		t.Errorf("Expected email 'test@example.com', got '%s'", receivers[0].Email)
+	}
+
+	err = DeleteReceiver(receivers[0].ID)
+	if err != nil {
+		t.Fatalf("Failed to delete receiver: %v", err)
+	}
+
+	receivers, err = GetReceivers()
+	if err != nil {
+		t.Fatalf("Failed to get receivers: %v", err)
+	}
+	if len(receivers) != 0 {
+		t.Errorf("Expected 0 receivers, got %d", len(receivers))
+	}
 }

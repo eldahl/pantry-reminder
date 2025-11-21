@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 )
 
@@ -27,6 +28,9 @@ func main() {
 	http.HandleFunc("/add", handleAddItem)
 	http.HandleFunc("/item", handleViewItem)
 	http.HandleFunc("/list", handleListItems)
+	http.HandleFunc("/settings", handleSettings)
+	http.HandleFunc("/settings/add-receiver", handleAddReceiver)
+	http.HandleFunc("/settings/delete-receiver", handleDeleteReceiver)
 	http.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir("uploads"))))
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
@@ -167,6 +171,52 @@ func handleListItems(w http.ResponseWriter, r *http.Request) {
 	tmpl.Execute(w, items)
 }
 
+func handleSettings(w http.ResponseWriter, r *http.Request) {
+	receivers, err := GetReceivers()
+	if err != nil {
+		http.Error(w, "Error fetching receivers", http.StatusInternalServerError)
+		return
+	}
+
+	tmpl, err := template.ParseFiles("templates/settings.html")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	tmpl.Execute(w, receivers)
+}
+
+func handleAddReceiver(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	email := r.FormValue("email")
+	if email != "" {
+		err := AddReceiver(email)
+		if err != nil {
+			log.Println("Error adding receiver:", err)
+		}
+	}
+	http.Redirect(w, r, "/settings", http.StatusSeeOther)
+}
+
+func handleDeleteReceiver(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	idStr := r.FormValue("id")
+	id, err := strconv.Atoi(idStr)
+	if err == nil {
+		err := DeleteReceiver(id)
+		if err != nil {
+			log.Println("Error deleting receiver:", err)
+		}
+	}
+	http.Redirect(w, r, "/settings", http.StatusSeeOther)
+}
+
 func createThumbnail(srcPath, dstPath string) error {
 	file, err := os.Open(srcPath)
 	if err != nil {
@@ -254,22 +304,31 @@ func checkExpirations() {
 	}
 
 	for _, item := range items {
-		to := os.Getenv("GMAIL_USER")
-		if to == "" {
-			log.Println("GMAIL_USER not set, skipping email")
+		// Send email
+		receivers, err := GetReceivers()
+		if err != nil {
+			log.Println("Error fetching receivers:", err)
 			continue
 		}
 
-		subject := fmt.Sprintf("Pantry Reminder: %s is expiring soon!", item.Name)
-		itemURL := fmt.Sprintf("http://localhost:8080/item?id=%d", item.ID)
-		body := fmt.Sprintf("Your item '%s' is expiring on %s.\n\nDescription: %s\n\nView item: %s",
-			item.Name, item.ExpirationDate.Format("2006-01-02"), item.Description, itemURL)
+		if len(receivers) == 0 {
+			log.Println("No receivers configured, skipping email")
+			continue
+		}
 
-		err := SendEmail([]string{to}, subject, body)
+		to := []string{}
+		for _, r := range receivers {
+			to = append(to, r.Email)
+		}
+
+		subject := fmt.Sprintf("Expiring Item: %s", item.Name)
+		body := fmt.Sprintf("Your item '%s' is expiring on %s.\n\nDescription: %s\n\nView Item: http://localhost:8080/item?id=%d", item.Name, item.ExpirationDate.Format("2006-01-02"), item.Description, item.ID)
+
+		err = SendEmail(to, subject, body)
 		if err != nil {
 			log.Println("Error sending email:", err)
 		} else {
-			log.Printf("Sent email for item %d", item.ID)
+			log.Printf("Sent email to %v for item %s\n", to, item.Name)
 			MarkAsNotified(item.ID)
 		}
 	}

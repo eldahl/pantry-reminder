@@ -47,3 +47,11 @@
     - [x] Update list template for grid layout <!-- id: 44 -->
     - [x] Update CSS for grid <!-- id: 45 -->
     - [x] Verify thumbnails and grid <!-- id: 46 -->
+- [/] Email Receivers Settings <!-- id: 47 -->
+    - [x] Plan changes <!-- id: 48 -->
+    - [x] Add Receiver model and DB logic <!-- id: 49 -->
+    - [x] Create settings template <!-- id: 50 -->
+    - [x] Add settings handlers <!-- id: 51 -->
+    - [x] Update email sending logic <!-- id: 52 -->
+    - [/] Update nav bar <!-- id: 53 -->
+    - [x] Verify settings and email sending <!-- id: 54 -->

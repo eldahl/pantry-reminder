@@ -10,6 +10,7 @@ I have successfully implemented the Pantry Reminder Service. This service allows
 - **Navigation Bar**: Easy navigation between pages.
 - **Overview Page**: View all registered items in a grid layout with thumbnails.
 - **Thumbnails**: Automatically generates thumbnails for uploaded images.
+- **Settings**: Manage email receivers for expiration notifications.
 
 ## How to Run
 

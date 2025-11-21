@@ -54,6 +54,16 @@ func InitDB(filepath string) {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	createReceiversTableSQL := `CREATE TABLE IF NOT EXISTS receivers (
+		"id" integer NOT NULL PRIMARY KEY AUTOINCREMENT,
+		"email" TEXT NOT NULL UNIQUE
+	);`
+
+	_, err = DB.Exec(createReceiversTableSQL)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func CreateItem(item Item) error {
@@ -128,4 +138,53 @@ func GetAllItems() ([]Item, error) {
 		items = append(items, i)
 	}
 	return items, nil
+}
+
+// Receiver struct
+type Receiver struct {
+	ID    int
+	Email string
+}
+
+// AddReceiver adds a new email receiver
+func AddReceiver(email string) error {
+	insertSQL := `INSERT INTO receivers (email) VALUES (?)`
+	statement, err := DB.Prepare(insertSQL)
+	if err != nil {
+		return err
+	}
+	_, err = statement.Exec(email)
+	return err
+}
+
+// GetReceivers returns all email receivers
+func GetReceivers() ([]Receiver, error) {
+	query := `SELECT id, email FROM receivers`
+	rows, err := DB.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var receivers []Receiver
+	for rows.Next() {
+		var r Receiver
+		err = rows.Scan(&r.ID, &r.Email)
+		if err != nil {
+			return nil, err
+		}
+		receivers = append(receivers, r)
+	}
+	return receivers, nil
+}
+
+// DeleteReceiver deletes a receiver by ID
+func DeleteReceiver(id int) error {
+	deleteSQL := `DELETE FROM receivers WHERE id = ?`
+	statement, err := DB.Prepare(deleteSQL)
+	if err != nil {
+		return err
+	}
+	_, err = statement.Exec(id)
+	return err
 }

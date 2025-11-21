@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Pantry Reminder</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        .settings-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .receiver-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .receiver-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .delete-btn {
+            background-color: #d9534f;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .delete-btn:hover {
+            background-color: #c9302c;
+        }
+
+        .add-form {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .add-form input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .add-btn {
+            background-color: #5cb85c;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .add-btn:hover {
+            background-color: #4cae4c;
+        }
+    </style>
+</head>
+
+<body>
+    <nav>
+        <ul>
+            <li><a href="/">Add Item</a></li>
+            <li><a href="/list">All Items</a></li>
+            <li><a href="/settings">Settings</a></li>
+        </ul>
+    </nav>
+
+    <div class="container settings-container">
+        <h1>Settings</h1>
+
+        <h2>Email Receivers</h2>
+        <p>These email addresses will receive expiration notifications.</p>
+
+        <ul class="receiver-list">
+            {{range .}}
+            <li class="receiver-item">
+                <span>{{.Email}}</span>
+                <form action="/settings/delete-receiver" method="POST" style="display:inline;">
+                    <input type="hidden" name="id" value="{{.ID}}">
+                    <button type="submit" class="delete-btn">Delete</button>
+                </form>
+            </li>
+            {{else}}
+            <li class="receiver-item">No receivers configured.</li>
+            {{end}}
+        </ul>
+
+        <form action="/settings/add-receiver" method="POST" class="add-form">
+            <input type="email" name="email" placeholder="Enter email address" required>
+            <button type="submit" class="add-btn">Add Receiver</button>
+        </form>
+    </div>
+</body>
+
+</html>
