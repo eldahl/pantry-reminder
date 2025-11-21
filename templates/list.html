@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Items - Pantry Reminder</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+    <nav>
+        <ul>
+            <li><a href="/">Add Item</a></li>
+            <li><a href="/list">All Items</a></li>
+        </ul>
+    </nav>
+
+    <div class="container" style="max-width: 1000px;">
+        <h1>All Pantry Items</h1>
+
+        {{if .}}
+        <div class="items-grid">
+            {{range .}}
+            <div class="item-card">
+                <div class="item-info">
+                    <div class="item-name">{{.Name}}</div>
+                    <div class="item-date {{if .ExpirationDate.Before (now)}}expired{{end}}">
+                        Expires: {{.ExpirationDate.Format "2006-01-02"}}
+                    </div>
+                </div>
+                <a href="/item?id={{.ID}}">
+                    {{if .ThumbnailPath}}
+                    <img src="/{{.ThumbnailPath}}" alt="{{.Name}}" class="item-thumb">
+                    {{else}}
+                    <div class="no-image">No Image</div>
+                    {{end}}
+                </a>
+            </div>
+            {{end}}
+        </div>
+        {{else}}
+        <p style="text-align: center; margin-top: 2rem;">No items found. <a href="/">Add one?</a></p>
+        {{end}}
+    </div>
+</body>
+
+</html>

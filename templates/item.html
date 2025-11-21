@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Item Details - Pantry Reminder</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+    <nav>
+        <ul>
+            <li><a href="/">Add Item</a></li>
+            <li><a href="/list">All Items</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <h1>{{.Name}}</h1>
+
+        {{if .ImagePath}}
+        <img src="/{{.ImagePath}}" alt="{{.Name}}" class="item-image">
+        {{end}}
+
+        <div class="details">
+            <div class="label">Description:</div>
+            <div class="value">{{.Description}}</div>
+
+            <div class="label">Expiration Date:</div>
+            <div class="value">{{.ExpirationDate.Format "2006-01-02"}}</div>
+        </div>
+
+        <a href="/" class="back-link">&larr; Back to Add Item</a>
+    </div>
+</body>
+
+</html>

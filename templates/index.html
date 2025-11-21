@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pantry Reminder</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+    <nav>
+        <ul>
+            <li><a href="/">Add Item</a></li>
+            <li><a href="/list">All Items</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <h1>Pantry Reminder</h1>
+
+        <script>
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('success')) {
+                document.write('<div class="success">Item added successfully!</div>');
+            }
+        </script>
+
+        <form action="/add" method="POST" enctype="multipart/form-data">
+            <label for="name">Item Name</label>
+            <input type="text" id="name" name="name" required>
+
+            <label for="description">Description</label>
+            <textarea id="description" name="description" rows="3"></textarea>
+
+            <label for="expiration_date">Expiration Date</label>
+            <input type="date" id="expiration_date" name="expiration_date" required>
+
+            <label for="image">Image</label>
+            <input type="file" id="image" name="image" accept="image/*">
+
+            <button type="submit">Add Item</button>
+        </form>
+    </div>
+</body>
+
+</html>

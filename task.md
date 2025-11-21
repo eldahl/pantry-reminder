@@ -1,0 +1,49 @@
+# Pantry Reminder Service
+
+- [x] Project Setup <!-- id: 0 -->
+    - [x] Initialize Go module <!-- id: 1 -->
+    - [x] Create directory structure <!-- id: 2 -->
+- [x] Planning <!-- id: 3 -->
+    - [x] Create implementation plan <!-- id: 4 -->
+    - [x] Define database schema <!-- id: 5 -->
+- [/] Backend Implementation <!-- id: 6 -->
+    - [x] Database setup (SQLite) <!-- id: 7 -->
+    - [x] Data models and repository <!-- id: 8 -->
+    - [x] HTTP Server & Routes <!-- id: 9 -->
+    - [x] Item registration handler (with image upload) <!-- id: 10 -->
+    - [x] Email notification service (Gmail SMTP) <!-- id: 11 -->
+    - [x] Expiration checker background job <!-- id: 12 -->
+- [x] Frontend Implementation <!-- id: 13 -->
+    - [x] Create HTML templates <!-- id: 14 -->
+    - [x] Style with CSS <!-- id: 15 -->
+    - [x] Client-side logic (if any) <!-- id: 16 -->
+- [x] Verification <!-- id: 17 -->
+    - [x] Test item registration <!-- id: 18 -->
+    - [x] Test email sending <!-- id: 19 -->
+    - [x] Verify expiration logic <!-- id: 20 -->
+- [/] Item View Feature <!-- id: 21 -->
+    - [x] Plan changes <!-- id: 22 -->
+    - [x] Add GetItemByID to models <!-- id: 23 -->
+    - [x] Create item view template <!-- id: 24 -->
+    - [x] Add item view handler <!-- id: 25 -->
+    - [x] Update email content with link <!-- id: 26 -->
+    - [x] Verify item view and email link <!-- id: 27 -->
+- [/] Navigation Bar <!-- id: 28 -->
+    - [x] Plan changes <!-- id: 29 -->
+    - [x] Create static/style.css <!-- id: 30 -->
+    - [x] Update main.go for static files <!-- id: 31 -->
+    - [x] Update templates with nav bar <!-- id: 32 -->
+    - [x] Verify nav bar <!-- id: 33 -->
+- [/] Overview Page <!-- id: 34 -->
+    - [x] Plan changes <!-- id: 35 -->
+    - [x] Add GetAllItems to models <!-- id: 36 -->
+    - [x] Create overview template <!-- id: 37 -->
+    - [x] Add overview handler <!-- id: 38 -->
+    - [x] Update nav bar <!-- id: 39 -->
+    - [x] Verify overview page <!-- id: 40 -->
+- [/] Thumbnail & Grid View <!-- id: 41 -->
+    - [x] Plan changes <!-- id: 42 -->
+    - [x] Implement thumbnail generation in main.go <!-- id: 43 -->
+    - [x] Update list template for grid layout <!-- id: 44 -->
+    - [x] Update CSS for grid <!-- id: 45 -->
+    - [x] Verify thumbnails and grid <!-- id: 46 -->
