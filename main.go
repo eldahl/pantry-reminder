@@ -31,11 +31,12 @@ func main() {
 	http.HandleFunc("/settings", handleSettings)
 	http.HandleFunc("/settings/add-receiver", handleAddReceiver)
 	http.HandleFunc("/settings/delete-receiver", handleDeleteReceiver)
+	http.HandleFunc("/delete-item", handleDeleteItem)
 	http.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir("uploads"))))
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
-	log.Println("Server started on :8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Println("Server started on :80")
+	log.Fatal(http.ListenAndServe(":80", nil))
 }
 
 func handleAddForm(w http.ResponseWriter, r *http.Request) {
@@ -63,6 +64,14 @@ func handleAddItem(w http.ResponseWriter, r *http.Request) {
 	name := r.FormValue("name")
 	description := r.FormValue("description")
 	expirationStr := r.FormValue("expiration_date")
+	reminderDaysStr := r.FormValue("reminder_days")
+
+	reminderDays := 30
+	if reminderDaysStr != "" {
+		if rd, err := strconv.Atoi(reminderDaysStr); err == nil {
+			reminderDays = rd
+		}
+	}
 
 	expirationDate, err := time.Parse("2006-01-02", expirationStr)
 	if err != nil {
@@ -113,6 +122,7 @@ func handleAddItem(w http.ResponseWriter, r *http.Request) {
 		Description:    description,
 		ExpirationDate: expirationDate,
 		ImagePath:      imagePath,
+		ReminderDays:   reminderDays,
 	}
 
 	if err := CreateItem(item); err != nil {
@@ -217,6 +227,22 @@ func handleDeleteReceiver(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/settings", http.StatusSeeOther)
 }
 
+func handleDeleteItem(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	idStr := r.FormValue("id")
+	id, err := strconv.Atoi(idStr)
+	if err == nil {
+		err := DeleteItem(id)
+		if err != nil {
+			log.Println("Error deleting item:", err)
+		}
+	}
+	http.Redirect(w, r, "/list", http.StatusSeeOther)
+}
+
 func createThumbnail(srcPath, dstPath string) error {
 	file, err := os.Open(srcPath)
 	if err != nil {
@@ -297,7 +323,7 @@ func startExpirationChecker() {
 
 func checkExpirations() {
 	log.Println("Checking for expiring items...")
-	items, err := GetItemsNearExpiration(30) // Notify 30 days in advance
+	items, err := GetItemsNearExpiration() // Notify based on item's reminder_days
 	if err != nil {
 		log.Println("Error checking expirations:", err)
 		return

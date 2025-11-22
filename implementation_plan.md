@@ -1,46 +1,45 @@
-# Implementation Plan - Email Receivers Settings
+# Add Configurable Reminder Days
 
 ## Goal Description
-Allow users to manage a list of email addresses that will receive expiration notifications. This will be done via a new "Settings" page.
+Allow users to configure how many days before expiration they should be reminded for each item. The default value will be 30 days.
+
+## User Review Required
+> [!NOTE]
+> Existing items will need to have a default value set for the new `reminder_days` column. I will set this to 30 days during the migration.
 
 ## Proposed Changes
 
 ### Backend
+
 #### [MODIFY] [models.go](file:///home/eldahl/Projects/pantry-reminder/models.go)
-- Add `Receiver` struct (`ID`, `Email`).
-- Update `InitDB` to create `receivers` table.
-- Add `AddReceiver(email string) error`.
-- Add `GetReceivers() ([]Receiver, error)`.
-- Add `DeleteReceiver(id int) error`.
+- Update `Item` struct to include `ReminderDays int`.
+- Update `InitDB` to add `reminder_days` column to `items` table if it doesn't exist.
+    - Use `ALTER TABLE items ADD COLUMN reminder_days INTEGER DEFAULT 30;` inside a check or try-catch block (or just execute and ignore error if column exists, or check schema).
+- Update `CreateItem` to insert `reminder_days`.
+- Update `GetItemsNearExpiration` to use the item's `reminder_days` for the check instead of a fixed parameter.
+    - Query change: `expiration_date <= DATE('now', '+' || reminder_days || ' days')` (SQLite).
+- Update `GetItemByID` and `GetAllItems` to scan `reminder_days`.
 
 #### [MODIFY] [main.go](file:///home/eldahl/Projects/pantry-reminder/main.go)
-- Add route `GET /settings`.
-- Add route `POST /settings/add-receiver`.
-- Add route `POST /settings/delete-receiver`.
-- Update `checkExpirations` to fetch receivers from DB and send emails to all of them.
+- Update `handleAddItem` to parse `reminder_days` from the form. Default to 30 if empty/invalid.
+- Update `checkExpirations` to call `GetItemsNearExpiration` without arguments (or ignore the arg).
 
 ### Frontend
-#### [NEW] [templates/settings.html](file:///home/eldahl/Projects/pantry-reminder/templates/settings.html)
-- List current receivers with a "Delete" button.
-- Form to add a new receiver.
 
 #### [MODIFY] [templates/index.html](file:///home/eldahl/Projects/pantry-reminder/templates/index.html)
-- Update Nav Bar to include "Settings".
+- Add an input field for "Reminder Days" (type number, default 30).
 
 #### [MODIFY] [templates/item.html](file:///home/eldahl/Projects/pantry-reminder/templates/item.html)
-- Update Nav Bar to include "Settings".
-
-#### [MODIFY] [templates/list.html](file:///home/eldahl/Projects/pantry-reminder/templates/list.html)
-- Update Nav Bar to include "Settings".
+- Display the "Reminder Days" value in the details view.
 
 ## Verification Plan
 
+### Automated Tests
+- None.
+
 ### Manual Verification
-1.  **Settings Page**:
-    - Go to `/settings`.
-    - Add an email. Verify it appears in the list.
-    - Delete an email. Verify it disappears.
-2.  **Email Sending**:
-    - Add a valid email (e.g., your own if testing, or just verify log output).
-    - Trigger expiration check (restart server or wait).
-    - Verify logs show "Sent email to [email]".
+1. **Migration**: Run the app and ensure no errors on startup (DB migration).
+2. **Add Item**: Add a new item with a custom reminder period (e.g., 5 days).
+3. **View Item**: Check the item details page to see if "Reminder Days: 5" is displayed.
+4. **Default Value**: Add an item without changing the reminder days and verify it saves as 30.
+5. **Notification Logic**: (Hard to test in real-time without mocking time or DB) - I will verify the SQL query logic by review or by temporarily setting a very long reminder period for an item expiring soon and seeing if it gets picked up (or vice versa).

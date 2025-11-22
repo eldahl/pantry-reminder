@@ -209,3 +209,64 @@ button:hover {
     background: #eee;
     color: #aaa;
 }
+
+/* Actions */
+.actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 2rem;
+    border-top: 1px solid #eee;
+    padding-top: 1rem;
+}
+
+.delete-btn {
+    background-color: #d9534f;
+    width: auto;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+}
+
+.delete-btn:hover {
+    background-color: #c9302c;
+}
+
+/* Dialog */
+dialog {
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    padding: 2rem;
+    max-width: 400px;
+    width: 90%;
+}
+
+dialog::backdrop {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.dialog-actions button {
+    width: auto;
+    background-color: #ccc;
+    color: #333;
+}
+
+.dialog-actions button:hover {
+    background-color: #bbb;
+}
+
+.dialog-actions .danger-btn {
+    background-color: #d9534f;
+    color: white;
+}
+
+.dialog-actions .danger-btn:hover {
+    background-color: #c9302c;
+}

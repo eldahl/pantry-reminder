@@ -18,6 +18,7 @@ type Item struct {
 	ExpirationDate time.Time
 	ImagePath      string
 	Notified       bool
+	ReminderDays   int
 	CreatedAt      time.Time
 }
 
@@ -64,23 +65,33 @@ func InitDB(filepath string) {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// Migration: Add reminder_days column if it doesn't exist
+	// We can just try to add it and ignore the error if it fails (simplest for SQLite)
+	// Or check pragma. Let's just try to add it.
+	alterTableSQL := `ALTER TABLE items ADD COLUMN reminder_days INTEGER DEFAULT 30;`
+	_, err = DB.Exec(alterTableSQL)
+	if err != nil {
+		// Ignore error, likely column already exists
+		log.Println("Migration warning (safe to ignore if column exists):", err)
+	}
 }
 
 func CreateItem(item Item) error {
-	insertSQL := `INSERT INTO items (name, description, expiration_date, image_path) VALUES (?, ?, ?, ?)`
+	insertSQL := `INSERT INTO items (name, description, expiration_date, image_path, reminder_days) VALUES (?, ?, ?, ?, ?)`
 	statement, err := DB.Prepare(insertSQL)
 	if err != nil {
 		return err
 	}
-	_, err = statement.Exec(item.Name, item.Description, item.ExpirationDate, item.ImagePath)
+	_, err = statement.Exec(item.Name, item.Description, item.ExpirationDate, item.ImagePath, item.ReminderDays)
 	return err
 }
 
-func GetItemsNearExpiration(days int) ([]Item, error) {
-	query := `SELECT id, name, description, expiration_date, image_path, notified, created_at FROM items WHERE expiration_date <= ? AND notified = 0`
+func GetItemsNearExpiration() ([]Item, error) {
+	// SQLite specific date math
+	query := `SELECT id, name, description, expiration_date, image_path, notified, reminder_days, created_at FROM items WHERE expiration_date <= DATE('now', '+' || reminder_days || ' days') AND notified = 0`
 
-	targetDate := time.Now().AddDate(0, 0, days)
-	rows, err := DB.Query(query, targetDate)
+	rows, err := DB.Query(query)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +100,7 @@ func GetItemsNearExpiration(days int) ([]Item, error) {
 	var items []Item
 	for rows.Next() {
 		var i Item
-		err = rows.Scan(&i.ID, &i.Name, &i.Description, &i.ExpirationDate, &i.ImagePath, &i.Notified, &i.CreatedAt)
+		err = rows.Scan(&i.ID, &i.Name, &i.Description, &i.ExpirationDate, &i.ImagePath, &i.Notified, &i.ReminderDays, &i.CreatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -109,11 +120,11 @@ func MarkAsNotified(id int) error {
 }
 
 func GetItemByID(id int) (*Item, error) {
-	query := `SELECT id, name, description, expiration_date, image_path, notified, created_at FROM items WHERE id = ?`
+	query := `SELECT id, name, description, expiration_date, image_path, notified, reminder_days, created_at FROM items WHERE id = ?`
 	row := DB.QueryRow(query, id)
 
 	var i Item
-	err := row.Scan(&i.ID, &i.Name, &i.Description, &i.ExpirationDate, &i.ImagePath, &i.Notified, &i.CreatedAt)
+	err := row.Scan(&i.ID, &i.Name, &i.Description, &i.ExpirationDate, &i.ImagePath, &i.Notified, &i.ReminderDays, &i.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +132,7 @@ func GetItemByID(id int) (*Item, error) {
 }
 
 func GetAllItems() ([]Item, error) {
-	query := `SELECT id, name, description, expiration_date, image_path, notified, created_at FROM items ORDER BY expiration_date ASC`
+	query := `SELECT id, name, description, expiration_date, image_path, notified, reminder_days, created_at FROM items ORDER BY expiration_date ASC`
 	rows, err := DB.Query(query)
 	if err != nil {
 		return nil, err
@@ -131,7 +142,7 @@ func GetAllItems() ([]Item, error) {
 	var items []Item
 	for rows.Next() {
 		var i Item
-		err = rows.Scan(&i.ID, &i.Name, &i.Description, &i.ExpirationDate, &i.ImagePath, &i.Notified, &i.CreatedAt)
+		err = rows.Scan(&i.ID, &i.Name, &i.Description, &i.ExpirationDate, &i.ImagePath, &i.Notified, &i.ReminderDays, &i.CreatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -181,6 +192,17 @@ func GetReceivers() ([]Receiver, error) {
 // DeleteReceiver deletes a receiver by ID
 func DeleteReceiver(id int) error {
 	deleteSQL := `DELETE FROM receivers WHERE id = ?`
+	statement, err := DB.Prepare(deleteSQL)
+	if err != nil {
+		return err
+	}
+	_, err = statement.Exec(id)
+	return err
+}
+
+// DeleteItem deletes an item by ID
+func DeleteItem(id int) error {
+	deleteSQL := `DELETE FROM items WHERE id = ?`
 	statement, err := DB.Prepare(deleteSQL)
 	if err != nil {
 		return err

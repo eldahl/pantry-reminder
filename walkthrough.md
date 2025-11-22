@@ -1,65 +1,36 @@
-# Pantry Reminder Service Walkthrough
+# Walkthrough - Configurable Reminder Days
 
-I have successfully implemented the Pantry Reminder Service. This service allows you to track pantry items and receive email notifications when they are nearing expiration.
+I have added a configurable `reminder_days` field to items, allowing users to specify how many days before expiration they should be reminded. The default is 30 days.
 
-## Features
-- **Item Registration**: Add items with a name, description, expiration date, and image.
-- **Expiration Tracking**: Automatically checks for items expiring within 3 days.
-- **Email Notifications**: Sends email reminders via Gmail SMTP with a link to view the item.
-- **Web Interface**: Simple and clean interface for managing items and viewing details.
-- **Navigation Bar**: Easy navigation between pages.
-- **Overview Page**: View all registered items in a grid layout with thumbnails.
-- **Thumbnails**: Automatically generates thumbnails for uploaded images.
-- **Settings**: Manage email receivers for expiration notifications.
+## Changes
 
-## How to Run
+### Backend
+- **models.go**:
+    - Updated `Item` struct to include `ReminderDays`.
+    - Updated `InitDB` to add the `reminder_days` column to the `items` table (migration).
+    - Updated `CreateItem`, `GetItemByID`, `GetAllItems` to handle the new field.
+    - Updated `GetItemsNearExpiration` to use the item's `reminder_days` in the SQL query instead of a fixed value.
+- **main.go**:
+    - Updated `handleAddItem` to parse `reminder_days` from the form.
+    - Updated `checkExpirations` to call `GetItemsNearExpiration` without arguments.
 
-1. **Set Environment Variables**:
-   You need to set your Gmail credentials.
-   ```bash
-   export GMAIL_USER="your-email@gmail.com"
-   export GMAIL_PASSWORD="your-app-password"
-   ```
-
-2. **Run the Service**:
-   ```bash
-   go run .
-   ```
-
-3. **Access the Web Interface**:
-   Open your browser and navigate to `http://localhost:8080`.
+### Frontend
+- **templates/index.html**: Added a "Reminder Days" input field (default 30) to the add item form.
+- **templates/item.html**: Displayed the "Reminder Days" value on the item detail page.
 
 ## Verification Results
 
 ### Automated Tests
-I ran the automated tests to verify the database logic and expiration checking.
-```bash
-go test -v
-```
-**Output:**
-```
-=== RUN   TestDB
---- PASS: TestDB (0.01s)
-PASS
-ok      pantry-reminder 0.012s
-```
+- Ran `go test .` and it passed successfully.
 
 ### Manual Verification Steps
-1. **Add an Item**:
-   - Go to `http://localhost:8080`.
-   - Fill in the details and upload an image.
-   - Click "Add Item".
-   - You should see a success message.
-
-2. **Check for Notifications**:
-   - The service checks for expirations every 24 hours.
-   - On startup, it performs an immediate check.
-   - If you added an item expiring within 3 days, you should receive an email.
-
-## Project Structure
-- `main.go`: Entry point, HTTP server, and background job.
-- `models.go`: Database models and logic.
-- `email.go`: Email sending logic.
-- `templates/index.html`: Frontend form.
-- `uploads/`: Directory for storing uploaded images.
-- `pantry.db`: SQLite database file.
+1. **Add Item**:
+    - Go to the "Add Item" page.
+    - Enter item details and set "Reminder Days" to a custom value (e.g., 7).
+    - Submit the form.
+2. **View Item**:
+    - Click on the newly added item.
+    - Verify that "Reminder Days: 7 days before" is displayed.
+3. **Default Value**:
+    - Add another item but leave "Reminder Days" as 30.
+    - Verify it saves as 30.

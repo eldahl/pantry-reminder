@@ -24,6 +24,7 @@ func TestDB(t *testing.T) {
 		Description:    "A test item",
 		ExpirationDate: time.Now().AddDate(0, 0, 2), // Expires in 2 days
 		ImagePath:      "uploads/test.jpg",
+		ReminderDays:   30,
 	}
 
 	err := CreateItem(item)
@@ -32,7 +33,7 @@ func TestDB(t *testing.T) {
 	}
 
 	// Test GetItemsNearExpiration
-	items, err := GetItemsNearExpiration(3) // Check for items expiring in 3 days
+	items, err := GetItemsNearExpiration() // Check for items expiring in 3 days
 	if err != nil {
 		t.Fatalf("Failed to get items: %v", err)
 	}
@@ -85,7 +86,7 @@ func TestDB(t *testing.T) {
 	}
 
 	// Verify it's not returned again
-	items, err = GetItemsNearExpiration(3)
+	items, err = GetItemsNearExpiration()
 	if err != nil {
 		t.Fatalf("Failed to get items: %v", err)
 	}
