@@ -18,17 +18,23 @@ Set the environment variables `GMAIL_USER=[your-gmail-email] GMAIL_PASSWORD=[you
 ```
 git clone https://github.com/eldahl/pantry-reminder
 ```
-2. Symlink the service file to systemd services location:    
+2. Create environment file and set up Gmail account with app password.
+```
+cd pantry-reminder
+touch .env
+echo -e 'GMAIL_USER=[gmail-mail]\nGMAIL_PASSWORD=[gmail-app-password]' > .env
+```
+4. Symlink the service file to systemd services location:    
 ```
 sudo ln -s /home/pi/pantry-reminder/pantry-reminder.service /etc/systemd/system/pantry-reminder.service
 ```
-3. Enable and start the service.
+4. Enable and start the service.
 ```
 sudo systemctl daemon-reload
 sudo systemctl enable pantry-reminder.service
 sudo systemctl start pantry-reminder.service
 ```
-4. Configuration
+5. Configuration
    - Navigate to the IP address of the raspbery pi (set up a domain name).
    - Enter receiver emails.
    - Start adding pantry items!
