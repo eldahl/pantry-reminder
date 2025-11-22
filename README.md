@@ -13,6 +13,26 @@ Run with `go run .` or build with `go build .` and run the generated binary.
 
 Set the environment variables `GMAIL_USER=[your-gmail-email] GMAIL_PASSWORD=[your-gmail-app-password]` to enable email notifications. The password is an app password when using 2FA, which you can generate from your google account.
 
+## Install on Raspberry Pi
+1. Clone the repo:    
+```
+git clone https://github.com/eldahl/pantry-reminder
+```
+2. Symlink the service file to systemd services location:    
+```
+sudo ln -s /home/pi/pantry-reminder/pantry-reminder.service /etc/systemd/system/pantry-reminder.service
+```
+3. Enable and start the service.
+```
+sudo systemctl daemon-reload
+sudo systemctl enable pantry-reminder.service
+sudo systemctl start pantry-reminder.service
+```
+4. Configuration
+   - Navigate to the IP address of the raspbery pi (set up a domain name).
+   - Enter receiver emails.
+   - Start adding pantry items!
+
 # Images
 <p align="center">
     <img src="imgs/1.png" alt="Add item page">
