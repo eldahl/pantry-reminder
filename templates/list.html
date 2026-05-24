@@ -20,15 +20,59 @@
     <div class="container" style="max-width: 1000px;">
         <h1>All Pantry Items</h1>
 
-        {{if .}}
+        <div class="list-controls">
+            <div class="search-controls">
+                <label for="searchInput" class="sort-label">Search:</label>
+                <input type="search" id="searchInput" class="search-input" value="{{.Search}}"
+                    placeholder="Name, description, date, or tags">
+                <button type="button" id="searchBtn" class="search-btn">Search</button>
+            </div>
+
+            <div class="filter-controls">
+                <span class="sort-label">Show:</span>
+                <label class="filter-checkbox">
+                    <input type="checkbox" id="showExpired" {{if .ShowExpired}}checked{{end}}>
+                    Show expired
+                </label>
+                <label class="filter-checkbox">
+                    <input type="checkbox" id="showNonExpired" {{if .ShowNonExpired}}checked{{end}}>
+                    Show non-expired
+                </label>
+            </div>
+
+            <div class="sort-controls">
+                <span class="sort-label">Sort by:</span>
+                <a href="{{.SortLink "date"}}" class="sort-link{{if eq .SortBy "date"}} active{{end}}">
+                    Date{{if eq .SortBy "date"}}{{if eq .SortOrder "asc"}} ↑{{else}} ↓{{end}}{{end}}
+                </a>
+                <a href="{{.SortLink "name"}}" class="sort-link{{if eq .SortBy "name"}} active{{end}}">
+                    Name{{if eq .SortBy "name"}}{{if eq .SortOrder "asc"}} ↑{{else}} ↓{{end}}{{end}}
+                </a>
+                <a href="{{.SortLink "tag"}}" class="sort-link{{if eq .SortBy "tag"}} active{{end}}">
+                    Tag{{if eq .SortBy "tag"}}{{if eq .SortOrder "asc"}} ↑{{else}} ↓{{end}}{{end}}
+                </a>
+            </div>
+        </div>
+
+        {{if .Items}}
         <div class="items-grid">
-            {{range .}}
-            <div class="item-card">
+            {{range .Items}}
+            <div class="item-card{{if .IsExpired}} expired-card{{end}}">
                 <div class="item-info">
                     <div class="item-name">{{.Name}}</div>
-                    <div class="item-date {{if .ExpirationDate.Before (now)}}expired{{end}}">
+                    {{if .Tags}}
+                    <div class="item-tags">
+                        {{range .Tags}}<span class="item-tag">{{.}}</span>{{end}}
+                    </div>
+                    {{end}}
+                    <div class="item-date">
                         Expires: {{.ExpirationDate.Format "2006-01-02"}}
                     </div>
+                    {{if .IsExpired}}
+                    <span class="status-label expired-label">Expired</span>
+                    {{else if .IsExpiringSoon}}
+                    <span class="status-label expiring-label">Expiring Soon</span>
+                    {{end}}
                 </div>
                 <a href="/item?id={{.ID}}">
                     {{if .ThumbnailPath}}
@@ -41,9 +85,40 @@
             {{end}}
         </div>
         {{else}}
-        <p style="text-align: center; margin-top: 2rem;">No items found. <a href="/">Add one?</a></p>
+        <p style="text-align: center; margin-top: 2rem;">No items match your filters. <a href="/list">Clear filters</a> or <a href="/">add one</a>.</p>
         {{end}}
     </div>
+
+    <script>
+        function buildParams() {
+            const params = new URLSearchParams(window.location.search);
+            params.set('show_expired', document.getElementById('showExpired').checked ? '1' : '0');
+            params.set('show_non_expired', document.getElementById('showNonExpired').checked ? '1' : '0');
+
+            const query = document.getElementById('searchInput').value.trim();
+            if (query) {
+                params.set('q', query);
+            } else {
+                params.delete('q');
+            }
+
+            return params;
+        }
+
+        function applyFilters() {
+            window.location.search = buildParams().toString();
+        }
+
+        document.getElementById('showExpired').addEventListener('change', applyFilters);
+        document.getElementById('showNonExpired').addEventListener('change', applyFilters);
+        document.getElementById('searchBtn').addEventListener('click', applyFilters);
+        document.getElementById('searchInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                applyFilters();
+            }
+        });
+    </script>
 </body>
 
 </html>

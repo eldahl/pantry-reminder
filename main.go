@@ -9,9 +9,12 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -27,6 +30,8 @@ func main() {
 	http.HandleFunc("/", handleAddForm)
 	http.HandleFunc("/add", handleAddItem)
 	http.HandleFunc("/item", handleViewItem)
+	http.HandleFunc("/edit", handleEditForm)
+	http.HandleFunc("/edit-item", handleEditItem)
 	http.HandleFunc("/list", handleListItems)
 	http.HandleFunc("/settings", handleSettings)
 	http.HandleFunc("/settings/add-receiver", handleAddReceiver)
@@ -37,6 +42,83 @@ func main() {
 
 	log.Println("Server started on :80")
 	log.Fatal(http.ListenAndServe(":80", nil))
+}
+
+func parseItemID(r *http.Request) (int, error) {
+	idStr := r.URL.Query().Get("id")
+	if idStr == "" {
+		idStr = r.FormValue("id")
+	}
+	return strconv.Atoi(idStr)
+}
+
+type itemFormData struct {
+	Name           string
+	Description    string
+	ExpirationDate time.Time
+	ReminderDays   int
+	Tags           []string
+}
+
+func parseItemForm(r *http.Request) (itemFormData, error) {
+	expirationStr := r.FormValue("expiration_date")
+	expirationDate, err := time.Parse("2006-01-02", expirationStr)
+	if err != nil {
+		return itemFormData{}, err
+	}
+
+	reminderDays := 30
+	if reminderDaysStr := r.FormValue("reminder_days"); reminderDaysStr != "" {
+		if rd, err := strconv.Atoi(reminderDaysStr); err == nil {
+			reminderDays = rd
+		}
+	}
+
+	return itemFormData{
+		Name:           r.FormValue("name"),
+		Description:    r.FormValue("description"),
+		ExpirationDate: expirationDate,
+		ReminderDays:   reminderDays,
+		Tags:           NormalizeTags(r.Form["tags"]),
+	}, nil
+}
+
+func saveUploadedImage(r *http.Request) (string, error) {
+	file, handler, err := r.FormFile("image")
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	os.MkdirAll("uploads", os.ModePerm)
+
+	filename := fmt.Sprintf("%d_%s", time.Now().Unix(), handler.Filename)
+	imagePath := filepath.Join("uploads", filename)
+	dst, err := os.Create(imagePath)
+	if err != nil {
+		return "", err
+	}
+	defer dst.Close()
+	if _, err := io.Copy(dst, file); err != nil {
+		return "", err
+	}
+
+	thumbPath := filepath.Join("uploads", "thumb_"+filename)
+	if err := createThumbnail(imagePath, thumbPath); err != nil {
+		log.Println("Error creating thumbnail:", err)
+	}
+
+	return imagePath, nil
+}
+
+func removeItemImages(item Item) {
+	if item.ImagePath == "" {
+		return
+	}
+	os.Remove(item.ImagePath)
+	if thumbPath := item.ThumbnailPath(); thumbPath != "" {
+		os.Remove(thumbPath)
+	}
 }
 
 func handleAddForm(w http.ResponseWriter, r *http.Request) {
@@ -61,71 +143,28 @@ func handleAddItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	name := r.FormValue("name")
-	description := r.FormValue("description")
-	expirationStr := r.FormValue("expiration_date")
-	reminderDaysStr := r.FormValue("reminder_days")
-
-	reminderDays := 30
-	if reminderDaysStr != "" {
-		if rd, err := strconv.Atoi(reminderDaysStr); err == nil {
-			reminderDays = rd
-		}
-	}
-
-	expirationDate, err := time.Parse("2006-01-02", expirationStr)
+	form, err := parseItemForm(r)
 	if err != nil {
 		http.Error(w, "Invalid date format", http.StatusBadRequest)
 		return
 	}
 
-	// Handle Image Upload
-	file, handler, err := r.FormFile("image")
-	var imagePath string
-	if err == nil {
-		defer file.Close()
-		// Create uploads directory if not exists
-		os.MkdirAll("uploads", os.ModePerm)
-
-		filename := fmt.Sprintf("%d_%s", time.Now().Unix(), handler.Filename)
-		imagePath = filepath.Join("uploads", filename)
-		dst, err := os.Create(imagePath)
-		if err != nil {
-			http.Error(w, "Error saving image", http.StatusInternalServerError)
-			return
-		}
-		defer dst.Close()
-		io.Copy(dst, file)
-
-		// Generate Thumbnail
-		thumbPath := filepath.Join("uploads", "thumb_"+filename)
-		if err := createThumbnail(imagePath, thumbPath); err != nil {
-			log.Println("Error creating thumbnail:", err)
-			// Fallback to original image if thumbnail fails
-			thumbPath = imagePath
-		}
-		// Store the thumbnail path in the DB for display, or logic to prefer thumbnail
-		// For simplicity, let's assume we store the original path in DB,
-		// but we will assume the thumbnail exists with prefix "thumb_" when rendering.
-		// Actually, better to store the original path and let the template derive the thumbnail path
-		// OR update the model to store both.
-		// Let's stick to the plan: "Update handleAddItem to generate a thumbnail (prefix thumb_) after saving the original image."
-		// The template will need to know to look for "thumb_" + filename.
-		// Wait, the plan said "Update list template for grid layout".
-		// I'll stick to storing the original path in the DB, and in the template/handler I'll handle the prefix.
-		// Or I can just overwrite imagePath with the thumbnail path if I only want to show the thumbnail? No, I want to show the full image on details.
-		// So I will just generate it here.
+	imagePath, err := saveUploadedImage(r)
+	if err != nil && err != http.ErrMissingFile {
+		http.Error(w, "Error saving image", http.StatusInternalServerError)
+		return
 	}
 
 	item := Item{
-		Name:           name,
-		Description:    description,
-		ExpirationDate: expirationDate,
+		Name:           form.Name,
+		Description:    form.Description,
+		ExpirationDate: form.ExpirationDate,
 		ImagePath:      imagePath,
-		ReminderDays:   reminderDays,
+		ReminderDays:   form.ReminderDays,
+		Tags:           form.Tags,
 	}
 
-	if err := CreateItem(item); err != nil {
+	if _, err := CreateItem(item); err != nil {
 		http.Error(w, "Error saving item", http.StatusInternalServerError)
 		return
 	}
@@ -135,14 +174,7 @@ func handleAddItem(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleViewItem(w http.ResponseWriter, r *http.Request) {
-	idStr := r.URL.Query().Get("id")
-	if idStr == "" {
-		http.Error(w, "Missing item ID", http.StatusBadRequest)
-		return
-	}
-
-	var id int
-	_, err := fmt.Sscanf(idStr, "%d", &id)
+	id, err := parseItemID(r)
 	if err != nil {
 		http.Error(w, "Invalid item ID", http.StatusBadRequest)
 		return
@@ -162,6 +194,202 @@ func handleViewItem(w http.ResponseWriter, r *http.Request) {
 	tmpl.Execute(w, item)
 }
 
+func handleEditForm(w http.ResponseWriter, r *http.Request) {
+	id, err := parseItemID(r)
+	if err != nil {
+		http.Error(w, "Invalid item ID", http.StatusBadRequest)
+		return
+	}
+
+	item, err := GetItemByID(id)
+	if err != nil {
+		http.Error(w, "Item not found", http.StatusNotFound)
+		return
+	}
+
+	tmpl, err := template.ParseFiles("templates/edit.html")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	tmpl.Execute(w, item)
+}
+
+func handleEditItem(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Redirect(w, r, "/list", http.StatusSeeOther)
+		return
+	}
+
+	err := r.ParseMultipartForm(10 << 20)
+	if err != nil {
+		http.Error(w, "Error parsing form", http.StatusBadRequest)
+		return
+	}
+
+	id, err := strconv.Atoi(r.FormValue("id"))
+	if err != nil {
+		http.Error(w, "Invalid item ID", http.StatusBadRequest)
+		return
+	}
+
+	existing, err := GetItemByID(id)
+	if err != nil {
+		http.Error(w, "Item not found", http.StatusNotFound)
+		return
+	}
+
+	form, err := parseItemForm(r)
+	if err != nil {
+		http.Error(w, "Invalid date format", http.StatusBadRequest)
+		return
+	}
+
+	imagePath := existing.ImagePath
+	if newPath, err := saveUploadedImage(r); err == nil {
+		removeItemImages(*existing)
+		imagePath = newPath
+	} else if err != http.ErrMissingFile {
+		http.Error(w, "Error saving image", http.StatusInternalServerError)
+		return
+	}
+
+	notified := existing.Notified
+	if !truncateToDate(existing.ExpirationDate).Equal(truncateToDate(form.ExpirationDate)) || existing.ReminderDays != form.ReminderDays {
+		notified = false
+	}
+
+	item := Item{
+		ID:             id,
+		Name:           form.Name,
+		Description:    form.Description,
+		ExpirationDate: form.ExpirationDate,
+		ImagePath:      imagePath,
+		ReminderDays:   form.ReminderDays,
+		Tags:           form.Tags,
+		Notified:       notified,
+	}
+
+	if err := UpdateItem(item); err != nil {
+		http.Error(w, "Error updating item", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, fmt.Sprintf("/item?id=%d&updated=true", id), http.StatusSeeOther)
+}
+
+type ListPageData struct {
+	Items          []Item
+	SortBy         string
+	SortOrder      string
+	ShowExpired    bool
+	ShowNonExpired bool
+	Search         string
+}
+
+func sortItems(items []Item, sortBy, sortOrder string) {
+	ascending := sortOrder != "desc"
+
+	sort.Slice(items, func(i, j int) bool {
+		var less bool
+		switch sortBy {
+		case "name":
+			less = strings.ToLower(items[i].Name) < strings.ToLower(items[j].Name)
+		case "tag":
+			less = items[i].SortTag() < items[j].SortTag()
+		default: // date
+			less = items[i].ExpirationDate.Before(items[j].ExpirationDate)
+		}
+		if !ascending {
+			return !less
+		}
+		return less
+	})
+}
+
+func filterItems(items []Item, showExpired, showNonExpired bool) []Item {
+	if showExpired && showNonExpired {
+		return items
+	}
+
+	filtered := make([]Item, 0, len(items))
+	for _, item := range items {
+		if item.IsExpired() {
+			if showExpired {
+				filtered = append(filtered, item)
+			}
+		} else if showNonExpired {
+			filtered = append(filtered, item)
+		}
+	}
+	return filtered
+}
+
+func itemMatchesSearch(item Item, query string) bool {
+	if strings.Contains(strings.ToLower(item.Name), query) {
+		return true
+	}
+	if strings.Contains(strings.ToLower(item.Description), query) {
+		return true
+	}
+	for _, tag := range item.Tags {
+		if strings.Contains(strings.ToLower(tag), query) {
+			return true
+		}
+	}
+	if strings.Contains(item.ExpirationDate.Format("2006-01-02"), query) {
+		return true
+	}
+	return false
+}
+
+func searchItems(items []Item, query string) []Item {
+	query = strings.TrimSpace(strings.ToLower(query))
+	if query == "" {
+		return items
+	}
+
+	filtered := make([]Item, 0, len(items))
+	for _, item := range items {
+		if itemMatchesSearch(item, query) {
+			filtered = append(filtered, item)
+		}
+	}
+	return filtered
+}
+
+func parseBoolQuery(r *http.Request, key string, defaultValue bool) bool {
+	value := r.URL.Query().Get(key)
+	if value == "" {
+		return defaultValue
+	}
+	return value != "0" && value != "false"
+}
+
+func (d ListPageData) listQuery(sortBy, sortOrder string) string {
+	params := url.Values{}
+	params.Set("sort", sortBy)
+	params.Set("order", sortOrder)
+	if !d.ShowExpired {
+		params.Set("show_expired", "0")
+	}
+	if !d.ShowNonExpired {
+		params.Set("show_non_expired", "0")
+	}
+	if d.Search != "" {
+		params.Set("q", d.Search)
+	}
+	return params.Encode()
+}
+
+func (d ListPageData) SortLink(sortBy string) string {
+	order := "asc"
+	if d.SortBy == sortBy && d.SortOrder == "asc" {
+		order = "desc"
+	}
+	return "/list?" + d.listQuery(sortBy, order)
+}
+
 func handleListItems(w http.ResponseWriter, r *http.Request) {
 	items, err := GetAllItems()
 	if err != nil {
@@ -169,16 +397,39 @@ func handleListItems(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	funcMap := template.FuncMap{
-		"now": time.Now,
+	sortBy := r.URL.Query().Get("sort")
+	if sortBy != "name" && sortBy != "tag" {
+		sortBy = "date"
 	}
 
-	tmpl, err := template.New("list.html").Funcs(funcMap).ParseFiles("templates/list.html")
+	sortOrder := r.URL.Query().Get("order")
+	if sortOrder != "desc" {
+		sortOrder = "asc"
+	}
+
+	showExpired := parseBoolQuery(r, "show_expired", true)
+	showNonExpired := parseBoolQuery(r, "show_non_expired", true)
+	search := strings.TrimSpace(r.URL.Query().Get("q"))
+
+	items = filterItems(items, showExpired, showNonExpired)
+	items = searchItems(items, search)
+	sortItems(items, sortBy, sortOrder)
+
+	data := ListPageData{
+		Items:          items,
+		SortBy:         sortBy,
+		SortOrder:      sortOrder,
+		ShowExpired:    showExpired,
+		ShowNonExpired: showNonExpired,
+		Search:         search,
+	}
+
+	tmpl, err := template.ParseFiles("templates/list.html")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	tmpl.Execute(w, items)
+	tmpl.Execute(w, data)
 }
 
 func handleSettings(w http.ResponseWriter, r *http.Request) {

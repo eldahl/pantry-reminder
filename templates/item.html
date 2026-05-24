@@ -20,6 +20,13 @@
     <div class="container">
         <h1>{{.Name}}</h1>
 
+        <script>
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('updated')) {
+                document.write('<div class="success">Item updated successfully!</div>');
+            }
+        </script>
+
         {{if .ImagePath}}
         <img src="/{{.ImagePath}}" alt="{{.Name}}" class="item-image">
         {{end}}
@@ -28,16 +35,33 @@
             <div class="label">Description:</div>
             <div class="value">{{.Description}}</div>
 
+            {{if .Tags}}
+            <div class="label">Tags:</div>
+            <div class="value item-tags">
+                {{range .Tags}}<span class="item-tag">{{.}}</span>{{end}}
+            </div>
+            {{end}}
+
             <div class="label">Expiration Date:</div>
-            <div class="value">{{.ExpirationDate.Format "2006-01-02"}}</div>
+            <div class="value">
+                {{.ExpirationDate.Format "2006-01-02"}}
+                {{if .IsExpired}}
+                <span class="status-label expired-label">Expired</span>
+                {{else if .IsExpiringSoon}}
+                <span class="status-label expiring-label">Expiring Soon</span>
+                {{end}}
+            </div>
 
             <div class="label">Reminder Days:</div>
             <div class="value">{{.ReminderDays}} days before</div>
         </div>
 
         <div class="actions">
-            <a href="/" class="back-link">&larr; Back to Add Item</a>
-            <button id="deleteBtn" class="delete-btn">Delete Item</button>
+            <a href="/list" class="back-link">&larr; Back to All Items</a>
+            <div class="action-buttons">
+                <a href="/edit?id={{.ID}}" class="edit-btn">Edit Item</a>
+                <button id="deleteBtn" class="delete-btn">Delete Item</button>
+            </div>
         </div>
     </div>
 

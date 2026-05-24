@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pantry Reminder</title>
+    <title>Edit Item - Pantry Reminder</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 
@@ -18,27 +18,27 @@
     </nav>
 
     <div class="container">
-        <h1>Pantry Reminder</h1>
+        <h1>Edit Item</h1>
 
-        <script>
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('success')) {
-                document.write('<div class="success">Item added successfully!</div>');
-            }
-        </script>
+        {{if .ImagePath}}
+        <img src="/{{.ImagePath}}" alt="{{.Name}}" class="item-image">
+        {{end}}
 
-        <form action="/add" method="POST" enctype="multipart/form-data">
+        <form action="/edit-item" method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="id" value="{{.ID}}">
+
             <label for="name">Item Name</label>
-            <input type="text" id="name" name="name" required>
+            <input type="text" id="name" name="name" value="{{.Name}}" required>
 
             <label for="description">Description</label>
-            <textarea id="description" name="description" rows="3"></textarea>
+            <textarea id="description" name="description" rows="3">{{.Description}}</textarea>
 
             <label for="expiration_date">Expiration Date</label>
-            <input type="date" id="expiration_date" name="expiration_date" required>
+            <input type="date" id="expiration_date" name="expiration_date"
+                value="{{.ExpirationDate.Format "2006-01-02"}}" required>
 
             <label for="reminder_days">Reminder Days (before expiration)</label>
-            <input type="number" id="reminder_days" name="reminder_days" value="30" min="1">
+            <input type="number" id="reminder_days" name="reminder_days" value="{{.ReminderDays}}" min="1">
 
             <label>Tags</label>
             <div id="tagInputContainer" class="tag-input-container">
@@ -50,17 +50,22 @@
                 <div class="tag-hidden-inputs"></div>
             </div>
 
-            <label for="image">Image</label>
+            <label for="image">Replace Image (optional)</label>
             <input type="file" id="image" name="image" accept="image/*" capture="environment">
 
-            <button type="submit">Add Item</button>
+            <div class="form-actions">
+                <button type="submit">Save Changes</button>
+                <a href="/item?id={{.ID}}" class="cancel-link">Cancel</a>
+            </div>
         </form>
     </div>
 
     <script src="/static/tags.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            initTagInput('tagInputContainer', []);
+            initTagInput('tagInputContainer', [
+                {{range $i, $t := .Tags}}{{if $i}}, {{end}}{{printf "%q" $t}}{{end}}
+            ]);
         });
     </script>
 </body>

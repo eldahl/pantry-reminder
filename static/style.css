@@ -68,6 +68,7 @@ label {
 
 input[type="text"],
 input[type="date"],
+input[type="number"],
 textarea {
     width: 100%;
     padding: 0.5rem;
@@ -188,9 +189,188 @@ button:hover {
     color: #666;
 }
 
-.item-date.expired {
+.item-card.expired-card {
+    opacity: 0.55;
+    filter: grayscale(80%);
+}
+
+.item-card.expired-card:hover {
+    transform: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.item-tag {
+    display: inline-block;
+    font-size: 0.8rem;
+    color: #555;
+    background: #e8e8e8;
+    padding: 2px 8px;
+    border-radius: 12px;
+    margin: 0 4px 4px 0;
+}
+
+.item-tags {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 5px;
+}
+
+.tag-input-container {
+    margin-bottom: 1rem;
+}
+
+.tag-input-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.tag-text-input {
+    flex: 1;
+    min-width: 0;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+    margin-bottom: 0;
+}
+
+.tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    min-height: 0;
+}
+
+.tag-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: #e8e8e8;
+    color: #555;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+}
+
+.tag-remove {
+    border: none;
+    background: transparent;
+    color: #888;
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+    padding: 0;
+}
+
+.tag-remove:hover {
     color: #d9534f;
+}
+
+.status-label {
+    display: inline-block;
+    font-size: 0.75rem;
     font-weight: bold;
+    padding: 2px 8px;
+    border-radius: 12px;
+    margin-top: 5px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.expiring-label {
+    background-color: #fcf8e3;
+    color: #8a6d3b;
+}
+
+.expired-label {
+    background-color: #f2dede;
+    color: #a94442;
+}
+
+.sort-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.list-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    padding: 0.75rem 1rem;
+    background: #f9f9f9;
+    border-radius: 6px;
+    border: 1px solid #eee;
+}
+
+.filter-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.filter-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-weight: normal;
+    color: #555;
+    cursor: pointer;
+}
+
+.filter-checkbox input {
+    margin: 0;
+}
+
+.search-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.search-input {
+    flex: 1;
+    min-width: 200px;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+    margin-bottom: 0;
+}
+
+.search-btn {
+    width: auto;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+}
+
+.sort-label {
+    font-weight: bold;
+    color: #666;
+}
+
+.sort-link {
+    color: #5cb85c;
+    text-decoration: none;
+    font-weight: bold;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+}
+
+.sort-link:hover {
+    background: #eef7ee;
+}
+
+.sort-link.active {
+    background: #5cb85c;
+    color: white;
 }
 
 .item-thumb {
@@ -229,6 +409,49 @@ button:hover {
 
 .delete-btn:hover {
     background-color: #c9302c;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.edit-btn {
+    background-color: #5cb85c;
+    color: white;
+    text-decoration: none;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+.edit-btn:hover {
+    background-color: #4cae4c;
+}
+
+.form-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.form-actions button {
+    width: auto;
+    flex: 1;
+}
+
+.cancel-link {
+    color: #666;
+    text-decoration: none;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.cancel-link:hover {
+    text-decoration: underline;
 }
 
 /* Dialog */
